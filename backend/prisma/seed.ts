@@ -211,6 +211,9 @@ async function main() {
         isApproximatePin: item.isApproximatePin,
         locationId: matchedLocation?.id || null,
         isDemo: item.isDemo,
+        isRented: false,
+        isActive: true,
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
       },
       create: {
         id: item.id,
@@ -232,6 +235,9 @@ async function main() {
         isApproximatePin: item.isApproximatePin,
         locationId: matchedLocation?.id || null,
         isDemo: item.isDemo,
+        isRented: false,
+        isActive: true,
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
         deletionHash: demoDeletionHash,
       },
     });

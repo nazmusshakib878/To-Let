@@ -17,10 +17,18 @@ export const OSM_ATTRIBUTION =
 /**
  * Creates a custom SVG DivIcon for a rental property marker with price badge.
  */
-export function createPropertyMarkerIcon(rent: number, isSelected = false): L.DivIcon {
-  const pinColor = isSelected ? '#e9a23b' : '#1f6f54';
-  const shadowColor = isSelected ? 'rgba(233, 162, 59, 0.45)' : 'rgba(31, 111, 84, 0.35)';
-  const formattedPrice = formatRent(rent);
+export function createPropertyMarkerIcon(
+  rent: number,
+  isSelected = false,
+  isRented = false
+): L.DivIcon {
+  const pinColor = isRented ? '#64748b' : isSelected ? '#e9a23b' : '#1f6f54';
+  const shadowColor = isRented
+    ? 'rgba(100, 116, 139, 0.35)'
+    : isSelected
+    ? 'rgba(233, 162, 59, 0.45)'
+    : 'rgba(31, 111, 84, 0.35)';
+  const formattedPrice = isRented ? `${formatRent(rent)} (ভাড়া)` : formatRent(rent);
 
   const html = `
     <div class="custom-map-marker ${isSelected ? 'marker-selected' : ''}" style="

@@ -125,4 +125,67 @@ describe('To-Let API Integration Tests', () => {
     assert.equal(resWard.status, 200);
     assert.ok(resWard.body.data.some((d: any) => d.ward === 24));
   });
+
+  it('PATCH /api/listings/:id/rented should toggle isRented with valid token', async () => {
+    // 1. Create a listing
+    const createRes = await request(app)
+      .post('/api/listings')
+      .send({
+        name: 'পরীক্ষামূলক মালিক',
+        phone: '01799887766',
+        loc: 'সোনাডাঙ্গা',
+        addr: 'রোড ২, বাসা ১০',
+        rent: 3200,
+        rooms: 2,
+        floor: 1,
+        maxOccupants: 4,
+        tenantType: 'family',
+      });
+
+    assert.equal(createRes.status, 201);
+    const listingId = createRes.body.data.id;
+    const token = createRes.body.deletionToken;
+    assert.equal(createRes.body.data.isRented, false);
+
+    // 2. Mark as rented without token -> 401
+    const noTokenRes = await request(app)
+      .patch(`/api/listings/${listingId}/rented`)
+      .send({ isRented: true });
+    assert.equal(noTokenRes.status, 401);
+
+    // 3. Mark as rented with valid token -> 200
+    const rentedRes = await request(app)
+      .patch(`/api/listings/${listingId}/rented`)
+      .set('x-deletion-token', token)
+      .send({ isRented: true });
+    assert.equal(rentedRes.status, 200);
+    assert.equal(rentedRes.body.data.isRented, true);
+
+    // 4. Renew listing for 30 more days -> 200
+    const renewRes = await request(app)
+      .post(`/api/listings/${listingId}/renew`)
+      .set('x-deletion-token', token);
+    assert.equal(renewRes.status, 200);
+    assert.ok(renewRes.body.data.expiresAt);
+
+    // 5. Clean up
+    await request(app)
+      .delete(`/api/listings/${listingId}`)
+      .set('x-deletion-token', token);
+  });
+
+  it('POST /api/listings/:id/report should file a report successfully', async () => {
+    const res = await request(app)
+      .post('/api/listings/1/report')
+      .send({
+        reason: 'fake',
+        details: 'পরীক্ষামূলক রিপোর্ট: তথ্য যাচাই প্রয়োজন',
+        reporterPhone: '01899001122',
+      });
+
+    assert.equal(res.status, 201);
+    assert.equal(res.body.success, true);
+    assert.ok(res.body.data.reportId);
+  });
 });
+

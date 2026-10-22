@@ -2,10 +2,17 @@ import { request } from './api';
 import {
   ApiResponse,
   CreateListingPayload,
-  CreateListingResponse,
   Listing,
   ListingFilterQuery,
+  ReportListingPayload,
 } from '../types/listing';
+
+export interface CreateListingResponse {
+  success: boolean;
+  message: string;
+  data: Listing;
+  deletionToken: string;
+}
 
 export const listingService = {
   /**
@@ -47,6 +54,9 @@ export const listingService = {
     }
     if (filters.type) params.set('type', filters.type);
     if (filters.sort) params.set('sort', filters.sort);
+    if (filters.includeRented !== undefined) {
+      params.set('includeRented', String(filters.includeRented));
+    }
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
     const res = await request<ApiResponse<Listing[]>>(`/listings${queryString}`);
@@ -73,8 +83,10 @@ export const listingService = {
     formData.append('rent', String(payload.rent));
     formData.append('rooms', String(payload.rooms));
     formData.append('floor', String(payload.floor));
-    formData.append('maxOccupants', String(payload.maxOccupants));
-    formData.append('tenantType', payload.tenantType);
+    const maxVal = payload.maxOccupants ?? payload.max ?? 1;
+    const typeVal = payload.tenantType ?? payload.type ?? 'family';
+    formData.append('maxOccupants', String(maxVal));
+    formData.append('tenantType', typeVal);
     formData.append('rules', JSON.stringify(payload.rules));
 
     if (payload.ward !== undefined) {
@@ -96,14 +108,57 @@ export const listingService = {
       formData.append('isApproximatePin', String(payload.isApproximatePin));
     }
 
-    if (payload.photoFile) {
-      formData.append('photo', payload.photoFile);
+    const photo = payload.photoFile || payload.photo;
+    if (photo) {
+      formData.append('photo', photo);
     }
 
     return request<CreateListingResponse>('/listings', {
       method: 'POST',
       body: formData,
     });
+  },
+
+  /**
+   * Toggle or update "isRented" status using owner's secret token
+   */
+  async toggleRented(id: number, deletionToken: string, isRented?: boolean): Promise<Listing> {
+    const res = await request<ApiResponse<Listing>>(`/listings/${id}/rented`, {
+      method: 'PATCH',
+      headers: {
+        'x-deletion-token': deletionToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ isRented }),
+    });
+    return res.data;
+  },
+
+  /**
+   * Renew listing for 30 more days using owner's secret token
+   */
+  async renewListing(id: number, deletionToken: string): Promise<Listing> {
+    const res = await request<ApiResponse<Listing>>(`/listings/${id}/renew`, {
+      method: 'POST',
+      headers: {
+        'x-deletion-token': deletionToken,
+      },
+    });
+    return res.data;
+  },
+
+  /**
+   * Report a fake or fraudulent listing
+   */
+  async reportListing(id: number, payload: ReportListingPayload): Promise<{ reportId: number }> {
+    const res = await request<ApiResponse<{ reportId: number }>>(`/listings/${id}/report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.data;
   },
 
   /**

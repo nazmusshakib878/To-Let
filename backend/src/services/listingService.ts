@@ -2,9 +2,7 @@ import { prisma } from '../config/db';
 import { generateDeletionToken, hashDeletionToken, verifyDeletionToken } from '../utils/crypto';
 import { generatePlaceholderSvg } from '../utils/placeholder';
 import { CreateListingInput, ListingQueryParams } from '../validators/listingValidator';
-import fs from 'fs';
-import path from 'path';
-import { config } from '../config/env';
+import { storageService } from './storageService';
 
 export interface PublicListing {
   id: number;
@@ -28,6 +26,14 @@ export interface PublicListing {
   isApproximatePin: boolean;
   locationId?: number | null;
   isDemo: boolean;
+
+  // New Status & Expiry Fields
+  isRented: boolean;
+  isActive: boolean;
+  expiresAt: string | null;
+  isExpired: boolean;
+  daysRemaining: number | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +58,13 @@ function formatPublicListing(item: any): PublicListing {
   const effectiveColor = item.cardColor || '#7fb5a0';
   const effectivePhoto = item.imageUrl ? item.imageUrl : generatePlaceholderSvg(effectiveColor);
 
+  const now = new Date();
+  const expiresAtDate = item.expiresAt ? new Date(item.expiresAt) : null;
+  const isExpired = expiresAtDate ? expiresAtDate.getTime() < now.getTime() : false;
+  const daysRemaining = expiresAtDate
+    ? Math.max(0, Math.ceil((expiresAtDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : null;
+
   return {
     id: item.id,
     name: item.name,
@@ -74,6 +87,14 @@ function formatPublicListing(item: any): PublicListing {
     isApproximatePin: item.isApproximatePin || false,
     locationId: item.locationId,
     isDemo: item.isDemo,
+
+    // Status and Expiry
+    isRented: item.isRented || false,
+    isActive: item.isActive !== undefined ? item.isActive : true,
+    expiresAt: item.expiresAt ? new Date(item.expiresAt).toISOString() : null,
+    isExpired,
+    daysRemaining,
+
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
   };
@@ -85,6 +106,20 @@ export class ListingService {
    */
   async getListings(query: ListingQueryParams): Promise<PublicListing[]> {
     const whereClause: any = {};
+
+    // Expiry and Active filter (by default show only active, non-expired listings unless includeExpired=true)
+    if (!query.includeExpired) {
+      whereClause.isActive = true;
+      whereClause.OR = [
+        { expiresAt: null },
+        { expiresAt: { gt: new Date() } },
+      ];
+    }
+
+    // Rented filter (by default include rented or allow filtering out rented)
+    if (query.includeRented === false) {
+      whereClause.isRented = false;
+    }
 
     // Location name filter: exact match if specified
     if (query.loc && query.loc.trim() !== '') {
@@ -128,54 +163,64 @@ export class ListingService {
       whereClause.floor = query.floor;
     }
 
-    // Minimum capacity (accommodates members): maxOccupants >= minCapacity
-    const minCap = query.minCapacity ?? query.mem;
-    if (minCap !== undefined && minCap > 0) {
-      whereClause.maxOccupants = { gte: minCap };
+    // Capacity filter: maxOccupants >= minCapacity
+    const minCapacity = query.minCapacity ?? query.mem;
+    if (minCapacity !== undefined && minCapacity > 0) {
+      whereClause.maxOccupants = { gte: minCapacity };
     }
 
-    // Tenant type: if 'family' or 'bachelor', match listings of that type OR 'any'
+    // Tenant type filter: 'family' | 'bachelor' | 'any'
     if (query.type) {
-      whereClause.tenantType = {
-        in: [query.type, 'any'],
-      };
+      whereClause.tenantType = { in: [query.type, 'any'] };
     }
 
-    // Sorting: default is rent ASC; 'new' is newest listings first (createdAt DESC)
-    const orderBy: any = query.sort === 'new' ? { createdAt: 'desc' } : { rent: 'asc' };
+    // Sorting logic
+    let orderBy: any = [{ rent: 'asc' }, { createdAt: 'desc' }];
+    if (query.sort === 'new') {
+      orderBy = [{ createdAt: 'desc' }];
+    }
 
-    const listings = await prisma.listing.findMany({
+    const items = await prisma.listing.findMany({
       where: whereClause,
       orderBy,
     });
 
-    return listings.map(formatPublicListing);
+    return items.map(formatPublicListing);
   }
 
   /**
-   * Get a single listing by ID.
+   * Retrieve a single listing by its ID.
    */
   async getListingById(id: number): Promise<PublicListing | null> {
-    const listing = await prisma.listing.findUnique({
+    const item = await prisma.listing.findUnique({
       where: { id },
     });
 
-    if (!listing) return null;
-    return formatPublicListing(listing);
+    if (!item) return null;
+    return formatPublicListing(item);
   }
 
   /**
-   * Create a new listing with ownership deletion token and geographic coordinates.
+   * Create a new listing with automatic 30-day expiry, cloud storage support, and cryptographic deletion token.
    */
   async createListing(
     input: CreateListingInput,
-    imageFilename?: string
+    uploadedFile?: Express.Multer.File
   ): Promise<{ listing: PublicListing; deletionToken: string }> {
     const deletionToken = generateDeletionToken();
     const deletionHash = hashDeletionToken(deletionToken);
 
-    const imageUrl = imageFilename ? `/uploads/${imageFilename}` : null;
+    let imageUrl: string | null = null;
+
+    if (uploadedFile) {
+      const storageResult = await storageService.processUploadedFile(uploadedFile);
+      imageUrl = storageResult.imageUrl;
+    }
+
     const cardColor = input.cardColor || getRandomColor();
+
+    // Set 30 days expiry from now
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     const created = await prisma.listing.create({
       data: {
@@ -197,6 +242,9 @@ export class ListingService {
         longitude: input.longitude,
         coordinateAccuracy: input.coordinateAccuracy || 'approximate',
         isApproximatePin: input.isApproximatePin || false,
+        isRented: false,
+        isActive: true,
+        expiresAt,
         isDemo: false,
         deletionHash,
       },
@@ -206,6 +254,93 @@ export class ListingService {
       listing: formatPublicListing(created),
       deletionToken,
     };
+  }
+
+  /**
+   * Toggle or update the "isRented" status of a listing using the creator's secret token.
+   */
+  async toggleRentedStatus(id: number, token: string, isRented?: boolean): Promise<PublicListing> {
+    const listing = await prisma.listing.findUnique({ where: { id } });
+
+    if (!listing) {
+      const error: any = new Error('বিজ্ঞাপনটি পাওয়া যায়নি');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const isValid = verifyDeletionToken(token, listing.deletionHash);
+    if (!isValid) {
+      const error: any = new Error('অননুমোদিত অনুরোধ: সঠিক ম্যানেজমেন্ট টোকেন নেই');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const nextStatus = isRented !== undefined ? isRented : !listing.isRented;
+
+    const updated = await prisma.listing.update({
+      where: { id },
+      data: { isRented: nextStatus },
+    });
+
+    return formatPublicListing(updated);
+  }
+
+  /**
+   * Renew listing for another 30 days using the creator's secret token.
+   */
+  async renewListing(id: number, token: string): Promise<PublicListing> {
+    const listing = await prisma.listing.findUnique({ where: { id } });
+
+    if (!listing) {
+      const error: any = new Error('বিজ্ঞাপনটি পাওয়া যায়নি');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const isValid = verifyDeletionToken(token, listing.deletionHash);
+    if (!isValid) {
+      const error: any = new Error('অননুমোদিত অনুরোধ: সঠিক ম্যানেজমেন্ট টোকেন নেই');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const updated = await prisma.listing.update({
+      where: { id },
+      data: {
+        expiresAt: newExpiry,
+        isActive: true,
+      },
+    });
+
+    return formatPublicListing(updated);
+  }
+
+  /**
+   * Report a fake, fraudulent, or outdated listing.
+   */
+  async reportListing(
+    listingId: number,
+    reportData: { reason: string; details?: string; reporterPhone?: string }
+  ): Promise<any> {
+    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
+    if (!listing) {
+      const error: any = new Error('বিজ্ঞাপনটি পাওয়া যায়নি');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const report = await prisma.report.create({
+      data: {
+        listingId,
+        reason: reportData.reason,
+        details: reportData.details,
+        reporterPhone: reportData.reporterPhone,
+      },
+    });
+
+    return report;
   }
 
   /**
@@ -235,17 +370,9 @@ export class ListingService {
       throw error;
     }
 
-    // Delete uploaded image file from disk if present
-    if (listing.imageUrl && listing.imageUrl.startsWith('/uploads/')) {
-      const filename = path.basename(listing.imageUrl);
-      const filePath = path.join(config.uploadDir, filename);
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (e) {
-          console.error(`Failed to delete file ${filePath}:`, e);
-        }
-      }
+    // Delete image via storage service (handles local disk or Cloudinary)
+    if (listing.imageUrl) {
+      await storageService.deleteImage(listing.imageUrl);
     }
 
     await prisma.listing.delete({

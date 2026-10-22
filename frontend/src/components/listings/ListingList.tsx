@@ -12,6 +12,9 @@ interface ListingListProps {
   isMyListing: (id: number) => boolean;
   onCopyPhone: (phone: string) => void;
   onDeleteRequest: (listing: Listing) => void;
+  onToggleRented?: (listing: Listing) => void;
+  onRenewListing?: (listing: Listing) => void;
+  onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 export const ListingList: React.FC<ListingListProps> = ({
@@ -22,6 +25,9 @@ export const ListingList: React.FC<ListingListProps> = ({
   isMyListing,
   onCopyPhone,
   onDeleteRequest,
+  onToggleRented,
+  onRenewListing,
+  onShowToast,
 }) => {
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -58,6 +64,9 @@ export const ListingList: React.FC<ListingListProps> = ({
           isOwner={isMyListing(item.id)}
           onCopyPhone={onCopyPhone}
           onDeleteRequest={onDeleteRequest}
+          onToggleRented={onToggleRented}
+          onRenewListing={onRenewListing}
+          onShowToast={onShowToast}
         />
       ))}
     </div>

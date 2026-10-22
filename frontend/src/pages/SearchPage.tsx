@@ -94,6 +94,42 @@ export const SearchPage: React.FC<SearchPageProps> = ({
     setDeletingListing(listing);
   };
 
+  const handleToggleRented = async (listing: Listing) => {
+    const token = getDeletionToken(listing.id);
+    if (!token) {
+      showToast('অননুমোদিত: এই পোস্ট পরিবর্তনের সিক্রেট টোকেন নেই');
+      return;
+    }
+
+    try {
+      const updated = await listingService.toggleRented(listing.id, token, !listing.isRented);
+      showToast(
+        updated.isRented
+          ? 'বিজ্ঞাপনটি "ভাড়া সম্পন্ন" চিহ্নিত করা হয়েছে'
+          : 'বিজ্ঞাপনটি পুনরায় "উপলভ্য" করা হয়েছে'
+      );
+      refetchListings();
+    } catch (err: any) {
+      showToast(err.message || 'স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে');
+    }
+  };
+
+  const handleRenewListing = async (listing: Listing) => {
+    const token = getDeletionToken(listing.id);
+    if (!token) {
+      showToast('অননুমোদিত: এই পোস্ট নবায়নের সিক্রেট টোকেন নেই');
+      return;
+    }
+
+    try {
+      await listingService.renewListing(listing.id, token);
+      showToast('বিজ্ঞাপনের মেয়াদ সফলভাবে আরো ৩০ দিন বৃদ্ধি করা হয়েছে!');
+      refetchListings();
+    } catch (err: any) {
+      showToast(err.message || 'বিজ্ঞাপন নবায়ন করতে সমস্যা হয়েছে');
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!deletingListing) return;
 
@@ -174,6 +210,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               isMyListing={isMyListing}
               onCopyPhone={handleCopyPhone}
               onDeleteRequest={handleDeleteRequest}
+              onToggleRented={handleToggleRented}
+              onRenewListing={handleRenewListing}
+              onShowToast={showToast}
             />
           </div>
 
@@ -226,6 +265,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 isOwner={isMyListing(selectedListing.id)}
                 onCopyPhone={handleCopyPhone}
                 onDeleteRequest={handleDeleteRequest}
+                onToggleRented={handleToggleRented}
+                onRenewListing={handleRenewListing}
+                onShowToast={showToast}
               />
             </div>
           )}
@@ -242,6 +284,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             isMyListing={isMyListing}
             onCopyPhone={handleCopyPhone}
             onDeleteRequest={handleDeleteRequest}
+            onToggleRented={handleToggleRented}
+            onRenewListing={handleRenewListing}
+            onShowToast={showToast}
           />
         </div>
       )}

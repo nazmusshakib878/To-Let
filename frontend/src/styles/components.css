@@ -594,3 +594,31 @@
   }
 }
 
+/* WhatsApp and Media Share Buttons */
+.whatsapp-btn {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.whatsapp-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+}
+
+.media-share-btn {
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.media-share-btn:hover {
+  transform: scale(1.1);
+  background: rgba(31, 111, 84, 0.9) !important;
+}
+
+.card-rented {
+  border-color: #cbd5e1 !important;
+}
+
+.card-rented .price {
+  color: #64748b !important;
+}
+
+

@@ -51,6 +51,11 @@ model Listing {
   isDemo             Boolean   @default(false) @map("is_demo")
   deletionHash       String    @map("deletion_hash")
 
+  // Status and Expiry features
+  isRented           Boolean   @default(false) @map("is_rented")
+  isActive           Boolean   @default(true) @map("is_active")
+  expiresAt          DateTime? @map("expires_at")
+
   // Geographic and Location fields
   locationId         Int?      @map("location_id")
   location           Location? @relation(fields: [locationId], references: [id])
@@ -60,6 +65,9 @@ model Listing {
   coordinateAccuracy String?   @default("approximate") @map("coordinate_accuracy") // "exact" | "approximate"
   isApproximatePin   Boolean   @default(false) @map("is_approximate_pin")
 
+  // Abuse / Fake Listing Reports
+  reports            Report[]
+
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
@@ -68,5 +76,23 @@ model Listing {
   @@index([createdAt])
   @@index([ward])
   @@index([latitude, longitude])
+  @@index([isRented])
+  @@index([expiresAt])
   @@map("listings")
 }
+
+model Report {
+  id            Int      @id @default(autoincrement())
+  listingId     Int      @map("listing_id")
+  reason        String   // "fake" | "incorrect_info" | "rented_already" | "fraud" | "other"
+  details       String?
+  reporterPhone String?  @map("reporter_phone")
+  status        String   @default("pending") // "pending" | "reviewed" | "dismissed"
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("reports")
+}
+

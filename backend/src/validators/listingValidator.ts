@@ -51,6 +51,26 @@ export const listingQuerySchema = z.object({
     .pipe(z.number().positive().optional()),
   type: z.enum(['', ...TENANT_TYPES]).optional(),
   sort: z.enum(['rent', 'new']).default('rent').optional(),
+  includeRented: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
+  includeExpired: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
+});
+
+export const toggleRentedSchema = z.object({
+  isRented: z.boolean().optional(),
+});
+
+export const reportListingSchema = z.object({
+  reason: z.enum(['fake', 'incorrect_info', 'rented_already', 'fraud', 'other'], {
+    errorMap: () => ({ message: 'সঠিক রিপোর্টের কারণ নির্বাচন করুন' }),
+  }),
+  details: z.string().trim().max(500, 'বিস্তারিত সর্বোচ্চ ৫০০ অক্ষরের মধ্যে হতে হবে').optional(),
+  reporterPhone: z.string().trim().optional(),
 });
 
 export const createListingSchema = z.object({

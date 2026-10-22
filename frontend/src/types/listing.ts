@@ -17,6 +17,13 @@ export interface Listing {
   cardColor?: string | null;
   isDemo?: boolean;
   
+  // Status and Expiry
+  isRented?: boolean;
+  isActive?: boolean;
+  expiresAt?: string | null;
+  isExpired?: boolean;
+  daysRemaining?: number | null;
+
   // Geographic and Location fields
   ward?: number | null;
   latitude?: number | null;
@@ -40,6 +47,7 @@ export interface ListingFilterQuery {
   minCapacity?: number;
   type?: string;
   sort?: 'rent' | 'new';
+  includeRented?: boolean;
 }
 
 export interface CreateListingPayload {
@@ -50,18 +58,26 @@ export interface CreateListingPayload {
   rent: number;
   rooms: number;
   floor: number;
-  maxOccupants: number;
-  tenantType: TenantType;
+  max?: number;
+  maxOccupants?: number;
+  type?: TenantType;
+  tenantType?: TenantType;
   rules: string[];
-  photoFile?: File | null;
-  
-  // Geographic and Location fields
+  cardColor?: string;
   locationId?: number;
   ward?: number;
   latitude?: number;
   longitude?: number;
   coordinateAccuracy?: 'exact' | 'approximate';
   isApproximatePin?: boolean;
+  photo?: File | null;
+  photoFile?: File | null;
+}
+
+export interface ReportListingPayload {
+  reason: 'fake' | 'incorrect_info' | 'rented_already' | 'fraud' | 'other';
+  details?: string;
+  reporterPhone?: string;
 }
 
 export interface ApiResponse<T> {
@@ -69,17 +85,5 @@ export interface ApiResponse<T> {
   message?: string;
   data: T;
   count?: number;
-}
-
-export interface CreateListingResponse {
-  success: boolean;
-  message: string;
-  data: Listing;
-  deletionToken: string;
-}
-
-export interface StoredOwnership {
-  listingId: number;
-  deletionToken: string;
-  createdAt: string;
+  deletionToken?: string;
 }
