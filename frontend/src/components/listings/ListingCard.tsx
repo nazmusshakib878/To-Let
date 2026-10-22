@@ -16,6 +16,7 @@ import { bn, formatRent } from '../../utils/bengali';
 import { TENANT_TYPE_LABELS } from '../../constants/areas';
 import { ph } from '../../utils/placeholder';
 import { getWhatsAppListingUrl } from '../../utils/whatsapp';
+import { getFullAssetUrl } from '../../services/api';
 import { ReportModal } from './ReportModal';
 
 interface ListingCardProps {
@@ -76,8 +77,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   };
 
   const imageSrc =
-    listing.imageUrl ||
-    listing.photo ||
+    getFullAssetUrl(listing.imageUrl || listing.photo) ||
     ph(listing.cardColor || '#7fb5a0');
 
   const tenantLabel = TENANT_TYPE_LABELS[listing.type] || listing.type;

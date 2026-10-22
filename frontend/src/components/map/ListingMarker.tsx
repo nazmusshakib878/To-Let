@@ -5,6 +5,7 @@ import { bn, formatRent } from '../../utils/bengali';
 import { TENANT_TYPE_LABELS } from '../../constants/areas';
 import { ph } from '../../utils/placeholder';
 import { getWhatsAppListingUrl } from '../../utils/whatsapp';
+import { getFullAssetUrl } from '../../services/api';
 
 export interface CreateListingMarkerOptions {
   listing: Listing;
@@ -34,7 +35,8 @@ export function createListingMarker({
   });
 
   const imageSrc =
-    listing.imageUrl || listing.photo || ph(listing.cardColor || '#7fb5a0');
+    getFullAssetUrl(listing.imageUrl || listing.photo) ||
+    ph(listing.cardColor || '#7fb5a0');
   const tenantLabel = TENANT_TYPE_LABELS[listing.type] || listing.type;
   const isApproximate = listing.isApproximatePin;
   const whatsappUrl = getWhatsAppListingUrl(listing);

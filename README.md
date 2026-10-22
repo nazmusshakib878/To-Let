@@ -94,11 +94,31 @@ npm run dev
 
 ---
 
-## ☁️ ক্লাউড কনফিগারেশন নির্দেশিকা (Cloud Deployment Ready)
+## ☁️ ক্লাউড কনফিগারেশন ও ডেপ্লয়মেন্ট নির্দেশিকা (Deployment Guide)
 
-যখন আপনি প্রজেক্টটি লাইভ হোস্ট করতে চাইবেন:
+প্রজেক্টটি আধুনিক আর্কিটেকচার অনুযায়ী ফ্রন্টএন্ড এবং ব্যাকএন্ড আলাদাভাবে ক্লাউডে ডেপ্লয় করার জন্য সম্পূর্ণ প্রস্তুত:
 
-### ১. ডাটাবেজ (PostgreSQL — Neon / Supabase):
+### ১. ফ্রন্টএন্ড ডেপ্লয়মেন্ট (Vercel):
+1. Vercel-এ লগইন করে **Add New Project** থেকে GitHub রিপোজিটরি ইমপোর্ট করুন।
+2. প্রজেক্ট সেটিংসে কনফিগার করুন:
+   - **Framework Preset:** `Vite`
+   - **Root Directory:** `frontend`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+3. Environment Variables (প্রয়োজন অনুযায়ী):
+   - `VITE_API_BASE_URL`: আপনার ডেপ্লয় করা ব্যাকএন্ড এপিআই ইউআরএল (যেমন: `https://your-backend.onrender.com/api`)।
+
+### ২. ব্যাকএন্ড ডেপ্লয়মেন্ট (Render / Railway / Fly.io):
+1. ব্যাকএন্ড সার্ভিসের জন্য **Root Directory** দিন `backend` (অথবা রুট থেকে `npm --workspace=backend run build`)।
+2. **Build Command:** `npm run build`
+3. **Start Command:** `npm start`
+4. **Environment Variables:**
+   - `PORT`: `5000` (বা ক্লাউডের স্বয়ংক্রিয় পোর্ট)
+   - `CORS_ORIGIN`: আপনার Vercel ফ্রন্টএন্ডের ডোমেইন (যেমন: `https://your-app.vercel.app` অথবা `*`)
+   - `DATABASE_URL`: আপনার PostgreSQL ডাটাবেজ লিংক (Neon / Supabase)
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: ক্লাউড ইমেজ হোস্টিংয়ের জন্য
+
+### ৩. ডাটাবেজ (PostgreSQL — Neon / Supabase):
 1. [Neon.tech](https://neon.tech) অথবা [Supabase](https://supabase.com) এ একটি ফ্রি PostgreSQL ডাটাবেজ তৈরি করুন।
 2. `backend/prisma/schema.prisma` ফাইলে `provider = "sqlite"` এর বদলে `provider = "postgresql"` করুন।
 3. আপনার প্রোডাকশন সার্ভারে `DATABASE_URL` সেট করুন:
@@ -107,7 +127,7 @@ npm run dev
    ```
 4. মাইগ্রেশন চালান: `npx prisma db push`
 
-### ২. ইমেজ স্টোরেজ (Cloudinary):
+### ৪. ইমেজ স্টোরেজ (Cloudinary):
 1. [Cloudinary.com](https://cloudinary.com) এ ফ্রি একাউন্ট খুলে ড্যাশবোর্ড থেকে ক্রেডেনশিয়াল সংগ্রহ করুন।
 2. আপনার ব্যাকএন্ডের `.env` বা হোস্টিং এনভায়রনমেন্টে যুক্ত করুন:
    ```env
