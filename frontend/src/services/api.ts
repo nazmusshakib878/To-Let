@@ -1,0 +1,49 @@
+const API_BASE_URL = '/api';
+
+export class ApiError extends Error {
+  statusCode: number;
+  errors?: Array<{ field: string; message: string }>;
+
+  constructor(message: string, statusCode: number, errors?: any[]) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.errors = errors;
+  }
+}
+
+export async function request<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const headers = new Headers(options.headers || {});
+
+  // Do not set Content-Type if sending FormData (browser sets boundary automatically)
+  if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const config: RequestInit = {
+    ...options,
+    headers,
+  };
+
+  try {
+    const response = await fetch(url, config);
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const errorMessage = data?.message || `সার্ভার ত্রুটি (${response.status})`;
+      throw new ApiError(errorMessage, response.status, data?.errors);
+    }
+
+    return data as T;
+  } catch (error: any) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(
+      error?.message || 'নেটওয়ার্ক সংযোগে সমস্যা হয়েছে। সার্ভার চালু আছে কিনা নিশ্চিত করুন।',
+      0
+    );
+  }
+}

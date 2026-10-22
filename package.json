@@ -1,0 +1,27 @@
+{
+  "name": "tolet-fullstack",
+  "version": "1.0.0",
+  "private": true,
+  "description": "বাসা খুঁজি (To-Let) — Full-stack rental house search and advertisement platform",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -p \"[{name}]\" -n \"BACKEND,FRONTEND\" -c \"cyan,green\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm --workspace=frontend run dev",
+    "dev:backend": "npm --workspace=backend run dev",
+    "build": "npm --workspace=backend run build && npm --workspace=frontend run build",
+    "test": "npm --workspace=backend run test",
+    "db:setup": "node scripts/setup.js",
+    "seed": "npm --workspace=backend run seed",
+    "postinstall": "npm --workspace=backend run prisma:generate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

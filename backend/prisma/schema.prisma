@@ -1,0 +1,72 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Location {
+  id               Int        @id @default(autoincrement())
+  nameBn           String     @map("name_bn")
+  nameEn           String     @map("name_en")
+  type             String     // "division" | "district" | "city" | "ward" | "area" | "landmark" | "road"
+  ward             Int?       // Ward number (1..31) if applicable
+  parentLocationId Int?       @map("parent_location_id")
+  latitude         Float?
+  longitude        Float?
+  aliases          String?    // JSON string array of alternative spellings/phonetic names
+  description      String?
+  isVerified       Boolean    @default(true) @map("is_verified")
+  source           String?    @default("OpenStreetMap / KCC")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  parentLocation   Location?  @relation("LocationHierarchy", fields: [parentLocationId], references: [id])
+  childLocations   Location[] @relation("LocationHierarchy")
+  listings         Listing[]
+
+  @@index([nameBn])
+  @@index([nameEn])
+  @@index([ward])
+  @@index([type])
+  @@map("locations")
+}
+
+model Listing {
+  id                 Int       @id @default(autoincrement())
+  name               String
+  phone              String
+  loc                String
+  addr               String
+  rent               Int
+  rooms              Int
+  floor              Int
+  maxOccupants       Int       @map("max_occupants")
+  tenantType         String    @map("tenant_type") // "family" | "bachelor" | "any"
+  rules              String    // Stored as JSON string array e.g. '["গ্যাস আলাদা"]'
+  imageUrl           String?   @map("image_url")
+  cardColor          String?   @map("card_color")
+  isDemo             Boolean   @default(false) @map("is_demo")
+  deletionHash       String    @map("deletion_hash")
+
+  // Geographic and Location fields
+  locationId         Int?      @map("location_id")
+  location           Location? @relation(fields: [locationId], references: [id])
+  ward               Int?
+  latitude           Float?
+  longitude          Float?
+  coordinateAccuracy String?   @default("approximate") @map("coordinate_accuracy") // "exact" | "approximate"
+  isApproximatePin   Boolean   @default(false) @map("is_approximate_pin")
+
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@index([loc])
+  @@index([rent])
+  @@index([createdAt])
+  @@index([ward])
+  @@index([latitude, longitude])
+  @@map("listings")
+}

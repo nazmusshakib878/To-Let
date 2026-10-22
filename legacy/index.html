@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>বাসা খুঁজি – To-Let</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>বাসা খুঁজি</h1>
+<p>সাতক্ষীরা–খুলনা অঞ্চলে ভাড়া বাসা, সরাসরি বাড়িওয়ালার কাছ থেকে</p>
+</header>
+
+<div class="tabs" role="tablist">
+<button role="tab" id="t1" aria-controls="find" aria-selected="true">বাসা খুঁজুন</button>
+<button role="tab" id="t2" aria-controls="post" aria-selected="false">To-Let দিন</button>
+</div>
+
+<section id="find" role="tabpanel" aria-labelledby="t1">
+<div class="panel">
+<div class="grid">
+<div><label for="fLoc">এলাকা</label><select id="fLoc"></select></div>
+<div><label for="fRent">সর্বোচ্চ ভাড়া (৳)</label><input id="fRent" type="number" value="3000" min="500" step="100"></div>
+<div><label for="fRooms">রুম লাগবে</label><select id="fRooms"><option value="0">যেকোনো</option><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div>
+<div><label for="fFloor">তলা</label><select id="fFloor"><option value="">যেকোনো</option><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div>
+<div><label for="fMem">পরিবারের সদস্য</label><input id="fMem" type="number" value="4" min="1"></div>
+<div><label for="fType">ভাড়াটিয়া</label><select id="fType"><option value="">যেকোনো</option><option value="family" selected>ফ্যামিলি</option><option value="bachelor">ব্যাচেলর</option></select></div>
+</div>
+<div class="row"><button class="btn" id="go">খুঁজুন</button><button class="btn ghost" id="reset">ফিল্টার মুছুন</button></div>
+</div>
+<div class="bar"><div class="count" id="count"></div><select id="sort" aria-label="সাজান"><option value="rent">ভাড়া: কম থেকে বেশি</option><option value="new">নতুন আগে</option></select></div>
+<div class="list" id="list"></div>
+</section>
+
+<section id="post" class="hide" role="tabpanel" aria-labelledby="t2">
+<div class="panel">
+<div class="grid">
+<div><label for="pName">আপনার নাম</label><input id="pName" placeholder="যেমন: রহিম সাহেব"></div>
+<div><label for="pPhone">ফোন নম্বর</label><input id="pPhone" type="tel" placeholder="01XXXXXXXXX"></div>
+<div><label for="pLoc">এলাকা</label><select id="pLoc"></select></div>
+<div><label for="pAddr">ঠিকানা / ল্যান্ডমার্ক</label><input id="pAddr" placeholder="রোড, মসজিদ বা মোড়ের নাম"></div>
+<div><label for="pRent">মাসিক ভাড়া (৳)</label><input id="pRent" type="number" min="500" step="100"></div>
+<div><label for="pRooms">রুম সংখ্যা</label><input id="pRooms" type="number" min="1" value="2"></div>
+<div><label for="pFloor">তলা</label><input id="pFloor" type="number" min="1" value="2"></div>
+<div><label for="pMax">সর্বোচ্চ সদস্য</label><input id="pMax" type="number" min="1" value="5"></div>
+<div><label for="pType">কাদের জন্য</label><select id="pType"><option value="family">ফ্যামিলি</option><option value="bachelor">ব্যাচেলর</option><option value="any">যে কেউ</option></select></div>
+</div>
+<div style="margin-top:12px"><label for="pRules">বাসার নিয়ম (প্রতি লাইনে একটি)</label>
+<textarea id="pRules" placeholder="গ্যাস বিল আলাদা&#10;রাত ১০টার মধ্যে গেট বন্ধ&#10;২ মাসের অগ্রিম"></textarea></div>
+<div style="margin-top:12px"><label for="pPhoto">রুমের ছবি</label><input id="pPhoto" type="file" accept="image/*"><img id="prev" class="prev hide" alt="ছবির প্রিভিউ"></div>
+<div class="row"><button class="btn" id="submit">পোস্ট করুন</button></div>
+</div>
+</section>
+</div>
+<p class="foot">ডেমো সংস্করণ: পোস্ট করা তথ্য শুধু এই ব্রাউজারে সেভ থাকে।</p>
+<div class="toast hide" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
