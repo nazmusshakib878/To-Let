@@ -2,9 +2,12 @@ import { request } from './api';
 import {
   ApiResponse,
   CreateListingPayload,
+  UpdateListingPayload,
   Listing,
   ListingFilterQuery,
   ReportListingPayload,
+  AdminStats,
+  AdminReport,
 } from '../types/listing';
 
 export interface CreateListingResponse {
@@ -171,6 +174,125 @@ export const listingService = {
         'x-deletion-token': deletionToken,
       },
     });
+    return res.success;
+  },
+
+  /**
+   * Update an existing listing using owner deletion/management token
+   */
+  async updateListing(
+    id: number,
+    deletionToken: string,
+    payload: UpdateListingPayload
+  ): Promise<Listing> {
+    const formData = new FormData();
+    if (payload.name !== undefined) formData.append('name', payload.name);
+    if (payload.phone !== undefined) formData.append('phone', payload.phone);
+    if (payload.loc !== undefined) formData.append('loc', payload.loc);
+    if (payload.addr !== undefined) formData.append('addr', payload.addr);
+    if (payload.rent !== undefined) formData.append('rent', String(payload.rent));
+    if (payload.rooms !== undefined) formData.append('rooms', String(payload.rooms));
+    if (payload.floor !== undefined) formData.append('floor', String(payload.floor));
+    if (payload.maxOccupants !== undefined) {
+      formData.append('maxOccupants', String(payload.maxOccupants));
+    }
+    if (payload.tenantType !== undefined) formData.append('tenantType', payload.tenantType);
+    if (payload.rules !== undefined) formData.append('rules', JSON.stringify(payload.rules));
+    if (payload.ward !== undefined) formData.append('ward', String(payload.ward));
+    if (payload.latitude !== undefined) formData.append('latitude', String(payload.latitude));
+    if (payload.longitude !== undefined) formData.append('longitude', String(payload.longitude));
+    if (payload.isApproximatePin !== undefined) {
+      formData.append('isApproximatePin', String(payload.isApproximatePin));
+    }
+    if (payload.photoFile) {
+      formData.append('photo', payload.photoFile);
+    }
+
+    const res = await request<ApiResponse<Listing>>(`/listings/${id}`, {
+      method: 'PUT',
+      headers: {
+        'x-deletion-token': deletionToken,
+      },
+      body: formData,
+    });
+    return res.data;
+  },
+
+  /**
+   * Admin: Fetch platform metrics computed directly from database
+   */
+  async adminGetStats(adminKey: string): Promise<AdminStats> {
+    const res = await request<ApiResponse<AdminStats>>('/admin/stats', {
+      headers: {
+        'x-admin-key': adminKey,
+      },
+    });
+    return res.data;
+  },
+
+  /**
+   * Admin: Fetch submitted abuse/fraud reports
+   */
+  async adminGetReports(adminKey: string): Promise<AdminReport[]> {
+    const res = await request<ApiResponse<AdminReport[]>>('/admin/reports', {
+      headers: {
+        'x-admin-key': adminKey,
+      },
+    });
+    return res.data;
+  },
+
+  /**
+   * Admin: Update report review status
+   */
+  async adminUpdateReport(
+    reportId: number,
+    status: 'pending' | 'reviewed' | 'dismissed',
+    adminKey: string
+  ): Promise<any> {
+    const res = await request<ApiResponse<any>>(`/admin/reports/${reportId}`, {
+      method: 'PATCH',
+      headers: {
+        'x-admin-key': adminKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+    return res.data;
+  },
+
+  /**
+   * Admin: Hide/restore (isActive) or set rented (isRented) for any listing
+   */
+  async adminUpdateListingStatus(
+    listingId: number,
+    data: { isActive?: boolean; isRented?: boolean },
+    adminKey: string
+  ): Promise<Listing> {
+    const res = await request<ApiResponse<Listing>>(`/admin/listings/${listingId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'x-admin-key': adminKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  },
+
+  /**
+   * Admin: Delete listing permanently
+   */
+  async adminDeleteListing(listingId: number, adminKey: string): Promise<boolean> {
+    const res = await request<{ success: boolean; message: string }>(
+      `/admin/listings/${listingId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'x-admin-key': adminKey,
+        },
+      }
+    );
     return res.success;
   },
 };

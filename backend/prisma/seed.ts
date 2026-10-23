@@ -171,7 +171,12 @@ async function main() {
   const locationCount = await prisma.location.count();
   console.log(`✅ Khulna Locations seeded: ${locationCount} verified records`);
 
-  // 2. Seed Demo Properties
+  // 2. Seed Demo Properties (Dev / Staging only; never in production unless explicitly opted in)
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_DEMO !== 'true') {
+    console.log('🛡️ Production environment detected: Skipping demo listing seeding to protect real production data.');
+    return;
+  }
+
   console.log('🌱 Seeding database with demo listings and coordinates...');
   const demoDeletionHash = crypto
     .createHash('sha256')

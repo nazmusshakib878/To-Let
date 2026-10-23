@@ -14,8 +14,12 @@
     "build": "npm --workspace=backend run build && npm --workspace=frontend run build",
     "build:frontend": "npm --workspace=frontend run build",
     "build:backend": "npm --workspace=backend run build",
-    "test": "npm --workspace=backend run test",
+    "test": "npm --workspace=backend run test && npm --workspace=frontend run test",
+    "test:backend": "npm --workspace=backend run test",
+    "test:frontend": "npm --workspace=frontend run test",
+    "db": "node scripts/setup.js",
     "db:setup": "node scripts/setup.js",
+    "db:provider": "node scripts/switch-db-provider.js",
     "seed": "npm --workspace=backend run seed",
     "prisma:generate": "npm --workspace=backend run prisma:generate",
     "postinstall": "node scripts/postinstall.js"

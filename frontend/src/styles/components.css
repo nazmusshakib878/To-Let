@@ -621,4 +621,48 @@
   color: #64748b !important;
 }
 
+/* View Details Button */
+.view-details-btn {
+  transition: var(--transition);
+}
+
+.view-details-btn:hover {
+  background-color: var(--g) !important;
+  color: var(--on) !important;
+  transform: translateY(-1px);
+}
+
+/* Mobile & Touch Viewport Adaptations */
+@media (max-width: 480px) {
+  .tabs {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+  }
+  .tabs button {
+    padding: 8px 10px;
+    font-size: 14px;
+    flex: 1 1 calc(50% - 4px);
+  }
+  .card-media {
+    height: 180px;
+  }
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .action-row a,
+  .action-row button {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* Safe scrolling and overflow guard */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+
 

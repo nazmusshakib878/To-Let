@@ -14,6 +14,8 @@ interface ListingListProps {
   onDeleteRequest: (listing: Listing) => void;
   onToggleRented?: (listing: Listing) => void;
   onRenewListing?: (listing: Listing) => void;
+  onViewDetails?: (listing: Listing) => void;
+  onEditRequest?: (listing: Listing) => void;
   onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
@@ -27,6 +29,8 @@ export const ListingList: React.FC<ListingListProps> = ({
   onDeleteRequest,
   onToggleRented,
   onRenewListing,
+  onViewDetails,
+  onEditRequest,
   onShowToast,
 }) => {
   if (isLoading) {
@@ -66,6 +70,8 @@ export const ListingList: React.FC<ListingListProps> = ({
           onDeleteRequest={onDeleteRequest}
           onToggleRented={onToggleRented}
           onRenewListing={onRenewListing}
+          onViewDetails={onViewDetails}
+          onEditRequest={onEditRequest}
           onShowToast={onShowToast}
         />
       ))}

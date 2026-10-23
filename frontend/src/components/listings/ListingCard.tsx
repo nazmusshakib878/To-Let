@@ -10,6 +10,8 @@ import {
   CheckCircle,
   RotateCw,
   Clock,
+  Eye,
+  Edit,
 } from 'lucide-react';
 import { Listing } from '../../types/listing';
 import { bn, formatRent } from '../../utils/bengali';
@@ -26,6 +28,8 @@ interface ListingCardProps {
   onDeleteRequest: (listing: Listing) => void;
   onToggleRented?: (listing: Listing) => void;
   onRenewListing?: (listing: Listing) => void;
+  onViewDetails?: (listing: Listing) => void;
+  onEditRequest?: (listing: Listing) => void;
   onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
@@ -36,6 +40,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   onDeleteRequest,
   onToggleRented,
   onRenewListing,
+  onViewDetails,
+  onEditRequest,
   onShowToast,
 }) => {
   const [copied, setCopied] = useState(false);
@@ -260,6 +266,31 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               {copied ? <Check size={15} color="var(--g)" /> : <Copy size={15} />}
               <span>{copied ? 'কপি হয়েছে' : 'কপি'}</span>
             </button>
+
+            {onViewDetails && (
+              <button
+                type="button"
+                className="view-details-btn"
+                onClick={() => onViewDetails(listing)}
+                title="সম্পূর্ণ বিস্তারিত বিবরণ ও নিয়মাবলি দেখুন"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: 'var(--gt)',
+                  color: 'var(--g)',
+                  padding: '7px 12px',
+                  borderRadius: 'var(--radius-sm, 8px)',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  border: '1px solid var(--line)',
+                  cursor: 'pointer',
+                }}
+              >
+                <Eye size={14} />
+                <span>বিস্তারিত</span>
+              </button>
+            )}
           </div>
 
           {/* Secondary Row: Owner Name, Report button, Owner Management Buttons */}
@@ -302,9 +333,33 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                 <span>রিপোর্ট</span>
               </button>
 
-              {/* Owner actions: Toggle Rented, Renew, Delete */}
+              {/* Owner actions: Edit, Toggle Rented, Renew, Delete */}
               {isOwner && (
                 <>
+                  {onEditRequest && (
+                    <button
+                      type="button"
+                      onClick={() => onEditRequest(listing)}
+                      style={{
+                        background: '#f8fafc',
+                        color: '#334155',
+                        border: '1px solid var(--line, #e2e8f0)',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      title="বিজ্ঞাপন সংশোধন বা এডিট করুন"
+                    >
+                      <Edit size={12} />
+                      <span>এডিট</span>
+                    </button>
+                  )}
+
                   {onToggleRented && (
                     <button
                       type="button"

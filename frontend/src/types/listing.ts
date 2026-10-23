@@ -80,6 +80,57 @@ export interface ReportListingPayload {
   reporterPhone?: string;
 }
 
+export interface UpdateListingPayload {
+  name?: string;
+  phone?: string;
+  loc?: string;
+  addr?: string;
+  rent?: number;
+  rooms?: number;
+  floor?: number;
+  maxOccupants?: number;
+  tenantType?: TenantType;
+  rules?: string[];
+  ward?: number;
+  latitude?: number;
+  longitude?: number;
+  isApproximatePin?: boolean;
+  photoFile?: File | null;
+}
+
+export interface AdminStats {
+  totalListings: number;
+  activeListings: number;
+  rentedListings: number;
+  expiredListings: number;
+  demoListings: number;
+  totalReports: number;
+  pendingReports: number;
+}
+
+export interface AdminReport {
+  id: number;
+  listingId: number;
+  reason: string;
+  details?: string;
+  reporterPhone?: string;
+  status: 'pending' | 'reviewed' | 'dismissed';
+  createdAt: string;
+  listing?: {
+    id: number;
+    name: string;
+    phone: string;
+    loc: string;
+    addr: string;
+    rent: number;
+    ward?: number | null;
+    isActive: boolean;
+    isRented: boolean;
+    isDemo: boolean;
+    createdAt: string;
+  } | null;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;

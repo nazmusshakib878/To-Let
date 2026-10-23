@@ -7,9 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "node -e \"try{require('child_process').execSync('npx prisma generate',{stdio:'inherit'})}catch(e){console.warn('Prisma generate note: '+e.message)}\" && tsc",
     "start": "node dist/server.js",
-    "prisma:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:setup": "prisma db push && tsx prisma/seed.ts",
+    "prisma:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:setup": "npx prisma db push && tsx prisma/seed.ts",
     "seed": "tsx prisma/seed.ts",
     "test": "tsx --test tests/**/*.test.ts"
   },

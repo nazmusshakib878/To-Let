@@ -1,7 +1,7 @@
 import { prisma } from '../config/db';
 import { generateDeletionToken, hashDeletionToken, verifyDeletionToken } from '../utils/crypto';
 import { generatePlaceholderSvg } from '../utils/placeholder';
-import { CreateListingInput, ListingQueryParams } from '../validators/listingValidator';
+import { CreateListingInput, ListingQueryParams, UpdateListingInput } from '../validators/listingValidator';
 import { storageService } from './storageService';
 
 export interface PublicListing {
@@ -379,6 +379,216 @@ export class ListingService {
       where: { id },
     });
 
+    return true;
+  }
+
+  /**
+   * Update an existing listing using the creator's secret token.
+   */
+  async updateListing(
+    id: number,
+    token: string,
+    input: UpdateListingInput,
+    uploadedFile?: Express.Multer.File
+  ): Promise<PublicListing> {
+    const listing = await prisma.listing.findUnique({ where: { id } });
+
+    if (!listing) {
+      const error: any = new Error('বিজ্ঞাপনটি পাওয়া যায়নি');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const isValid = verifyDeletionToken(token, listing.deletionHash);
+    if (!isValid) {
+      const error: any = new Error('অননুমোদিত অনুরোধ: সঠিক এডিট/ম্যানেজমেন্ট টোকেন নেই');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    let imageUrl = listing.imageUrl;
+    if (uploadedFile) {
+      // If there was an old image, remove it
+      if (listing.imageUrl) {
+        await storageService.deleteImage(listing.imageUrl);
+      }
+      const storageResult = await storageService.processUploadedFile(uploadedFile);
+      imageUrl = storageResult.imageUrl;
+    }
+
+    const updateData: any = {};
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.phone !== undefined) updateData.phone = input.phone;
+    if (input.loc !== undefined) updateData.loc = input.loc;
+    if (input.addr !== undefined) updateData.addr = input.addr;
+    if (input.rent !== undefined) updateData.rent = input.rent;
+    if (input.rooms !== undefined) updateData.rooms = input.rooms;
+    if (input.floor !== undefined) updateData.floor = input.floor;
+    if (input.maxOccupants !== undefined) updateData.maxOccupants = input.maxOccupants;
+    if (input.tenantType !== undefined) updateData.tenantType = input.tenantType;
+    if (input.rules !== undefined) updateData.rules = JSON.stringify(input.rules);
+    if (input.ward !== undefined) updateData.ward = input.ward;
+    if (input.latitude !== undefined) updateData.latitude = input.latitude;
+    if (input.longitude !== undefined) updateData.longitude = input.longitude;
+    if (input.isApproximatePin !== undefined) updateData.isApproximatePin = input.isApproximatePin;
+    if (imageUrl !== listing.imageUrl) updateData.imageUrl = imageUrl;
+
+    const updated = await prisma.listing.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return formatPublicListing(updated);
+  }
+
+  /**
+   * Admin: Get comprehensive platform stats derived directly from real database records.
+   */
+  async getAdminStats(): Promise<{
+    totalListings: number;
+    activeListings: number;
+    rentedListings: number;
+    expiredListings: number;
+    demoListings: number;
+    totalReports: number;
+    pendingReports: number;
+  }> {
+    const now = new Date();
+    const [
+      totalListings,
+      activeListings,
+      rentedListings,
+      expiredListings,
+      demoListings,
+      totalReports,
+      pendingReports,
+    ] = await Promise.all([
+      prisma.listing.count(),
+      prisma.listing.count({
+        where: {
+          isActive: true,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+      }),
+      prisma.listing.count({ where: { isRented: true } }),
+      prisma.listing.count({
+        where: {
+          expiresAt: { lte: now },
+        },
+      }),
+      prisma.listing.count({ where: { isDemo: true } }),
+      prisma.report.count(),
+      prisma.report.count({ where: { status: 'pending' } }),
+    ]);
+
+    return {
+      totalListings,
+      activeListings,
+      rentedListings,
+      expiredListings,
+      demoListings,
+      totalReports,
+      pendingReports,
+    };
+  }
+
+  /**
+   * Admin: Retrieve all reports with their associated listing data (safe, no deletion tokens exposed).
+   */
+  async getAdminReports(): Promise<any[]> {
+    const reports = await prisma.report.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        listing: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            loc: true,
+            addr: true,
+            rent: true,
+            ward: true,
+            isActive: true,
+            isRented: true,
+            isDemo: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    return reports.map((r) => ({
+      id: r.id,
+      listingId: r.listingId,
+      reason: r.reason,
+      details: r.details,
+      reporterPhone: r.reporterPhone,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+      listing: r.listing
+        ? {
+            ...r.listing,
+            createdAt: r.listing.createdAt.toISOString(),
+          }
+        : null,
+    }));
+  }
+
+  /**
+   * Admin: Update report status (e.g. reviewed, dismissed).
+   */
+  async updateReportStatus(reportId: number, status: string): Promise<any> {
+    const report = await prisma.report.findUnique({ where: { id: reportId } });
+    if (!report) {
+      const error: any = new Error('রিপোর্টটি পাওয়া যায়নি');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return prisma.report.update({
+      where: { id: reportId },
+      data: { status },
+    });
+  }
+
+  /**
+   * Admin: Toggle or set listing active status (hide/restore) or rented status.
+   */
+  async adminUpdateListingStatus(
+    id: number,
+    data: { isActive?: boolean; isRented?: boolean }
+  ): Promise<PublicListing> {
+    const listing = await prisma.listing.findUnique({ where: { id } });
+    if (!listing) {
+      const error: any = new Error('বিজ্ঞাপনটি পাওয়া যায়নি');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const updated = await prisma.listing.update({
+      where: { id },
+      data,
+    });
+
+    return formatPublicListing(updated);
+  }
+
+  /**
+   * Admin: Permanently delete a listing.
+   */
+  async adminDeleteListing(id: number): Promise<boolean> {
+    const listing = await prisma.listing.findUnique({ where: { id } });
+    if (!listing) {
+      const error: any = new Error('বিজ্ঞাপনটি পাওয়া যায়নি');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (listing.imageUrl) {
+      await storageService.deleteImage(listing.imageUrl);
+    }
+
+    await prisma.listing.delete({ where: { id } });
     return true;
   }
 }

@@ -187,5 +187,74 @@ describe('To-Let API Integration Tests', () => {
     assert.equal(res.body.success, true);
     assert.ok(res.body.data.reportId);
   });
+
+  it('PUT /api/listings/:id should update listing with valid token and reject without token', async () => {
+    // 1. Create a listing
+    const createRes = await request(app)
+      .post('/api/listings')
+      .send({
+        name: 'শরীফুল',
+        phone: '01711223344',
+        loc: 'বয়রা',
+        addr: 'রোড ৪',
+        rent: 3000,
+        rooms: 2,
+        floor: 1,
+        maxOccupants: 4,
+        tenantType: 'family',
+      });
+
+    assert.equal(createRes.status, 201);
+    const listingId = createRes.body.data.id;
+    const token = createRes.body.deletionToken;
+
+    // 2. Unauthorized update without token -> 401
+    const noTokenRes = await request(app)
+      .put(`/api/listings/${listingId}`)
+      .send({ rent: 3500 });
+    assert.equal(noTokenRes.status, 401);
+
+    // 3. Authorized update with token -> 200
+    const updateRes = await request(app)
+      .put(`/api/listings/${listingId}`)
+      .set('x-deletion-token', token)
+      .send({ rent: 3500, rooms: 3 });
+    assert.equal(updateRes.status, 200);
+    assert.equal(updateRes.body.data.rent, 3500);
+    assert.equal(updateRes.body.data.rooms, 3);
+
+    // 4. Cleanup
+    await request(app)
+      .delete(`/api/listings/${listingId}`)
+      .set('x-deletion-token', token);
+  });
+
+  it('Admin API should reject unauthorized access and allow authorized access with ADMIN_API_KEY', async () => {
+    // 1. Unauthorized access without admin key -> 401
+    const unauthRes = await request(app).get('/api/admin/stats');
+    assert.equal(unauthRes.status, 401);
+
+    // 2. Unauthorized with bad key -> 401
+    const badKeyRes = await request(app)
+      .get('/api/admin/stats')
+      .set('x-admin-key', 'wrong-key');
+    assert.equal(badKeyRes.status, 401);
+
+    // 3. Authorized access with valid admin key -> 200
+    const adminKey = process.env.ADMIN_API_KEY || 'khulna-tolet-dev-admin-key-2026';
+    const authRes = await request(app)
+      .get('/api/admin/stats')
+      .set('x-admin-key', adminKey);
+    assert.equal(authRes.status, 200);
+    assert.equal(authRes.body.success, true);
+    assert.ok(typeof authRes.body.data.totalListings === 'number');
+
+    // 4. Admin reports list
+    const reportsRes = await request(app)
+      .get('/api/admin/reports')
+      .set('x-admin-key', adminKey);
+    assert.equal(reportsRes.status, 200);
+    assert.ok(Array.isArray(reportsRes.body.data));
+  });
 });
 

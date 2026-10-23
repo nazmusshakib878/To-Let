@@ -7,6 +7,7 @@ import healthRoutes from './routes/healthRoutes';
 import areaRoutes from './routes/areaRoutes';
 import listingRoutes from './routes/listingRoutes';
 import locationRoutes from './routes/locationRoutes';
+import adminRoutes from './routes/adminRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { generalLimiter } from './middleware/rateLimiter';
 
@@ -71,6 +72,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/areas', areaRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/listings', listingRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Catch-all for undefined routes
 app.use('/api/*', (_req, res) => {

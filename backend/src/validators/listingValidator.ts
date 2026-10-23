@@ -180,5 +180,92 @@ export const createListingSchema = z.object({
     .default(false),
 });
 
+export const updateListingSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  phone: z
+    .string()
+    .trim()
+    .transform((val) => val.replace(/[\s-]/g, ''))
+    .refine((val) => BANGLADESH_PHONE_REGEX.test(val), {
+      message: 'সঠিক বাংলাদেশি মোবাইল নম্বর দিন',
+    })
+    .optional(),
+  loc: z.string().trim().min(1).optional(),
+  addr: z.string().trim().min(1).max(250).optional(),
+  rent: z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((val) => (typeof val === 'string' ? parseInt(val, 10) : val))
+    .refine((val) => val === undefined || (!isNaN(val) && val >= 500), {
+      message: 'মাসিক ভাড়া কমপক্ষে ৫০০ ৳ হতে হবে',
+    }),
+  rooms: z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((val) => (typeof val === 'string' ? parseInt(val, 10) : val))
+    .refine((val) => val === undefined || (!isNaN(val) && val >= 1), {
+      message: 'রুম সংখ্যা কমপক্ষে ১ হতে হবে',
+    }),
+  floor: z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((val) => (typeof val === 'string' ? parseInt(val, 10) : val))
+    .refine((val) => val === undefined || (!isNaN(val) && val >= 0), {
+      message: 'তলা ০ বা তার বেশি হতে হবে',
+    }),
+  maxOccupants: z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((val) => (typeof val === 'string' ? parseInt(val, 10) : val))
+    .refine((val) => val === undefined || (!isNaN(val) && val >= 1), {
+      message: 'সর্বোচ্চ সদস্য কমপক্ষে ১ হতে হবে',
+    }),
+  tenantType: z.enum(TENANT_TYPES).optional(),
+  rules: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .transform((val) => {
+      if (Array.isArray(val)) return val.map((s) => s.trim()).filter(Boolean);
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) return parsed.map((s: any) => String(s).trim()).filter(Boolean);
+        } catch {
+          return val.split('\n').map((s) => s.trim()).filter(Boolean);
+        }
+      }
+      return undefined;
+    }),
+  ward: z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((val) => (val ? parseInt(String(val), 10) : undefined)),
+  latitude: z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((val) => (val !== undefined && val !== '' ? parseFloat(String(val)) : undefined)),
+  longitude: z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((val) => (val !== undefined && val !== '' ? parseFloat(String(val)) : undefined)),
+  isApproximatePin: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((val) => (typeof val === 'string' ? val === 'true' : Boolean(val))),
+});
+
+export const adminUpdateListingStatusSchema = z.object({
+  isActive: z.boolean().optional(),
+  isRented: z.boolean().optional(),
+});
+
+export const adminUpdateReportStatusSchema = z.object({
+  status: z.enum(['pending', 'reviewed', 'dismissed'], {
+    errorMap: () => ({ message: 'স্ট্যাটাস pending, reviewed অথবা dismissed হতে হবে' }),
+  }),
+});
+
 export type ListingQueryParams = z.infer<typeof listingQuerySchema>;
 export type CreateListingInput = z.infer<typeof createListingSchema>;
+export type UpdateListingInput = z.infer<typeof updateListingSchema>;
+

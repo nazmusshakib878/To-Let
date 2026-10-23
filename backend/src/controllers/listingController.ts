@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { listingService } from '../services/listingService';
 import {
   createListingSchema,
+  updateListingSchema,
   listingQuerySchema,
   toggleRentedSchema,
   reportListingSchema,
@@ -184,6 +185,41 @@ export class ListingController {
       res.json({
         success: true,
         message: 'পোস্ট মুছে ফেলা হয়েছে',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateListing(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const id = parseInt(idParam, 10);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'অবৈধ বিজ্ঞাপন আইডি' });
+        return;
+      }
+
+      const token =
+        (req.headers['x-deletion-token'] as string) ||
+        req.body?.deletionToken ||
+        (req.query?.token as string);
+
+      if (!token) {
+        res.status(401).json({
+          success: false,
+          message: 'ম্যানেজমেন্ট টোকেন প্রয়োজন। অননুমোদিত অনুরোধ।',
+        });
+        return;
+      }
+
+      const validatedData = await updateListingSchema.parseAsync(req.body);
+      const updated = await listingService.updateListing(id, token, validatedData, req.file);
+
+      res.json({
+        success: true,
+        message: 'বিজ্ঞাপন সফলভাবে হালনাগাদ করা হয়েছে',
+        data: updated,
       });
     } catch (error) {
       next(error);

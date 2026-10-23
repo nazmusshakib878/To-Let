@@ -67,14 +67,23 @@ if (!hasPrismaPkg && !hasPrismaBin) {
 // 4. Attempt Prisma client generation safely
 try {
   console.log('🔄 Generating Prisma Client for backend...');
-  execSync('npm --workspace=backend run prisma:generate', {
-    cwd: rootDir,
-    stdio: 'inherit',
-    env: process.env,
-  });
+  const backendDir = path.join(rootDir, 'backend');
+  try {
+    execSync('npx prisma generate', {
+      cwd: backendDir,
+      stdio: 'inherit',
+      env: process.env,
+    });
+  } catch (innerErr) {
+    execSync('npm --workspace=backend run prisma:generate', {
+      cwd: rootDir,
+      stdio: 'inherit',
+      env: process.env,
+    });
+  }
   console.log('✅ Prisma Client generation completed.');
 } catch (err) {
-  // If Prisma generation encounters an issue (e.g. Windows query_engine lock EPERM),
+  // If Prisma generation encounters an issue (e.g. Windows query_engine lock EPERM or missing CLI on frontend-only host),
   // warn gracefully without aborting npm install.
   console.warn('⚠️ Notice: Prisma generation could not complete during postinstall:');
   console.warn(err.message || String(err));

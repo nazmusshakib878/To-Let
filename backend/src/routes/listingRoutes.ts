@@ -23,6 +23,9 @@ router.post('/:id/renew', listingController.renewListing);
 // POST /api/listings/:id/report - Report fake or fraudulent listing (rate limited)
 router.post('/:id/report', reportLimiter, listingController.reportListing);
 
+// PUT /api/listings/:id - Update listing (requires deletion/manage token)
+router.put('/:id', upload.single('photo'), listingController.updateListing);
+
 // DELETE /api/listings/:id - Delete listing with deletion token
 router.delete('/:id', listingController.deleteListing);
 

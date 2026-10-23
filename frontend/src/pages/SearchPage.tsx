@@ -8,6 +8,9 @@ import { DeleteConfirmModal } from '../components/common/DeleteConfirmModal';
 import { MapViewToggle } from '../components/map/MapViewToggle';
 import { KhulnaMap } from '../components/map/KhulnaMap';
 import { ListingCard } from '../components/listings/ListingCard';
+import { PropertyDetailsModal } from '../components/listings/PropertyDetailsModal';
+import { EditListingModal } from '../components/forms/EditListingModal';
+import { ReportModal } from '../components/listings/ReportModal';
 import { listingService } from '../services/listingService';
 
 interface SearchPageProps {
@@ -22,7 +25,7 @@ interface SearchPageProps {
   isMyListing: (id: number) => boolean;
   getDeletionToken: (id: number) => string | undefined;
   removeOwnership: (id: number) => void;
-  showToast: (msg: string) => void;
+  showToast: (msg: string, type?: 'info' | 'success' | 'error' | 'warning') => void;
   refetchListings: () => void;
 }
 
@@ -49,6 +52,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   const [flyToCoordinates, setFlyToCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [deletingListing, setDeletingListing] = useState<Listing | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [detailsListing, setDetailsListing] = useState<Listing | null>(null);
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
+  const [reportingListing, setReportingListing] = useState<Listing | null>(null);
 
   // Responsive viewMode adjustment on resize
   useEffect(() => {
@@ -212,6 +218,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               onDeleteRequest={handleDeleteRequest}
               onToggleRented={handleToggleRented}
               onRenewListing={handleRenewListing}
+              onViewDetails={(item) => setDetailsListing(item)}
+              onEditRequest={(item) => setEditingListing(item)}
               onShowToast={showToast}
             />
           </div>
@@ -227,7 +235,10 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             <KhulnaMap
               listings={listings}
               selectedListingId={selectedListingId}
-              onSelectListing={handleSelectListingFromMap}
+              onSelectListing={(listing) => {
+                handleSelectListingFromMap(listing);
+                setDetailsListing(listing);
+              }}
               flyToCoordinates={flyToCoordinates}
               height="620px"
             />
@@ -240,7 +251,10 @@ export const SearchPage: React.FC<SearchPageProps> = ({
           <KhulnaMap
             listings={listings}
             selectedListingId={selectedListingId}
-            onSelectListing={handleSelectListingFromMap}
+            onSelectListing={(listing) => {
+              handleSelectListingFromMap(listing);
+              setDetailsListing(listing);
+            }}
             flyToCoordinates={flyToCoordinates}
             height="580px"
           />
@@ -267,6 +281,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 onDeleteRequest={handleDeleteRequest}
                 onToggleRented={handleToggleRented}
                 onRenewListing={handleRenewListing}
+                onViewDetails={(item) => setDetailsListing(item)}
+                onEditRequest={(item) => setEditingListing(item)}
                 onShowToast={showToast}
               />
             </div>
@@ -286,11 +302,14 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             onDeleteRequest={handleDeleteRequest}
             onToggleRented={handleToggleRented}
             onRenewListing={handleRenewListing}
+            onViewDetails={(item) => setDetailsListing(item)}
+            onEditRequest={(item) => setEditingListing(item)}
             onShowToast={showToast}
           />
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(deletingListing)}
         listingTitle={deletingListing ? `${deletingListing.loc} (${deletingListing.name})` : ''}
@@ -298,6 +317,42 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingListing(null)}
       />
+
+      {/* Property Details Modal */}
+      <PropertyDetailsModal
+        listing={detailsListing}
+        isOpen={Boolean(detailsListing)}
+        onClose={() => setDetailsListing(null)}
+        isOwner={detailsListing ? isMyListing(detailsListing.id) : false}
+        onCopyPhone={handleCopyPhone}
+        onOpenReport={(item) => setReportingListing(item)}
+        onOpenEdit={(item) => setEditingListing(item)}
+        onToggleRented={handleToggleRented}
+        onRenewListing={handleRenewListing}
+        onDeleteRequest={handleDeleteRequest}
+        onShowToast={showToast}
+      />
+
+      {/* Edit Listing Modal */}
+      <EditListingModal
+        listing={editingListing}
+        isOpen={Boolean(editingListing)}
+        onClose={() => setEditingListing(null)}
+        token={editingListing ? getDeletionToken(editingListing.id) || '' : ''}
+        onSuccess={() => refetchListings()}
+        showToast={showToast}
+      />
+
+      {/* Report Modal */}
+      {reportingListing && (
+        <ReportModal
+          listing={reportingListing}
+          isOpen={Boolean(reportingListing)}
+          onClose={() => setReportingListing(null)}
+          onSuccess={(msg) => showToast(msg, 'success')}
+          onError={(msg) => showToast(msg, 'error')}
+        />
+      )}
     </section>
   );
 };
